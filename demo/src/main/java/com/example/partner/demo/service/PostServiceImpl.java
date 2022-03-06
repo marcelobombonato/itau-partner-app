@@ -50,8 +50,8 @@ public class PostServiceImpl implements PostService {
             isoMsg.set(49, "840");
             printISOMessage(isoMsg);
 
-            byte[] result = isoMsg.pack();
-            return new String(result);
+            byte[] isoMsgB = isoMsg.pack();
+            return new String(isoMsgB);
         } catch (ISOException e) {
             throw new Exception(e);
         }
