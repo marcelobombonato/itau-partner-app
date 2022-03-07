@@ -7,16 +7,16 @@ import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPublicKey;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EncryptDecryptUtils {
@@ -27,26 +27,25 @@ public class EncryptDecryptUtils {
 	public static String encryptMessage(String message) throws NoSuchAlgorithmException, InvalidKeySpecException,
 			IOException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
 
-		Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
 		cipher.init(Cipher.ENCRYPT_MODE, getPublicKey());
 		
-		return Base64.encodeBase64String(cipher.doFinal(message.getBytes()));
+		return Base64.getEncoder().encodeToString(cipher.doFinal(message.getBytes()));
 
 	}
 
-	private static RSAPublicKey getPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+	private static PublicKey getPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 		File file = new File("src/main/resources/" + publicKeyData);
 
 		String key = new String(Files.readAllBytes(file.toPath()), Charset.defaultCharset());
 		
-		String publicKeyPEM = key.replace("-----BEGIN PUBLIC KEY-----", "").replaceAll(System.lineSeparator(), "")
-				.replace("-----END PUBLIC KEY-----", "");
-
-		byte[] encoded = Base64.decodeBase64(publicKeyPEM);
-
+		String publicKeyPEM = key.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("-----END PUBLIC KEY-----", "");
 		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-		X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
-		return (RSAPublicKey) keyFactory.generatePublic(keySpec);
+
+		byte[] decoded = Base64.getMimeDecoder().decode(publicKeyPEM);
+		X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decoded);
+		
+		return keyFactory.generatePublic(keySpec);
 	}
 
 }

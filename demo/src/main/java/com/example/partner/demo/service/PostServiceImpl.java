@@ -2,13 +2,15 @@ package com.example.partner.demo.service;
 
 import java.io.InputStream;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.packager.GenericPackager;
@@ -22,15 +24,22 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public String sendMessageToAWS() throws Exception {
 
-		CloseableHttpClient httpclient = HttpClients.createDefault();
-	    HttpPost httpPost = new HttpPost("http://localhost:8081/api/lambda");
-	    String JSON_STRING="{\"iso_message\":"+"\""+EncryptDecryptUtils.encryptMessage(createISOMessage())+"\""+"}";
-	    HttpEntity stringEntity = new StringEntity(JSON_STRING,ContentType.APPLICATION_JSON);
-	    httpPost.setEntity(stringEntity);
-	    CloseableHttpResponse response2 = httpclient.execute(httpPost);
-			
-		return null;
+		String isoMessage = createISOMessage();
 		
+		CloseableHttpClient httpclient = HttpClients.createDefault();
+	    HttpPost httpPost = new HttpPost("https://ou4ml2obsc.execute-api.us-east-1.amazonaws.com/dev/send-iso-message");
+	    
+	    String json ="{\"iso_message\":"+"\""+EncryptDecryptUtils.encryptMessage(isoMessage)+"\""+"}";
+	    
+	    HttpEntity stringEntity = new StringEntity(json, ContentType.APPLICATION_JSON);
+	    
+	    httpPost.setEntity(stringEntity);
+	    
+	    HttpResponse response = httpclient.execute(httpPost);
+	    
+	    String strResponse = EntityUtils.toString(response.getEntity());
+	    
+	    return formatJson(strResponse);
 	}
 	
 	private String createISOMessage() throws Exception {
@@ -69,5 +78,9 @@ public class PostServiceImpl implements PostService {
             e.printStackTrace();
         }
     }
+	
+	private String formatJson(String json) {
+		return StringEscapeUtils.unescapeJava(json).substring( 1, StringEscapeUtils.unescapeJava(json).length() - 1 );
+	}
 
 }
